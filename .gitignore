@@ -1,0 +1,17 @@
+.vagrant
+/cookbooks
+*~
+
+# Bundler
+bin/*
+.bundle/*
+
+.kitchen/
+
+# Vagrant
+Berksfile.lock
+nohup.out
+start-dev.sh
+vagrant.pid
+
+.idea

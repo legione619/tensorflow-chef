@@ -1,0 +1,11 @@
+dependencies:
+  - recipe: tensorflow::install
+    global:  
+      - kagent::install
+  - recipe: tensorflow::default
+    global:  
+      - hops::dn
+
+
+
+
