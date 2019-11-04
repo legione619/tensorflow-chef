@@ -3,7 +3,7 @@ maintainer       "Jim Dowling"
 maintainer_email "jdowling@kth.se"
 license          "Apache v2.0"
 description      'Installs/Configures/Runs tensorflow'
-version          "0.9.0"
+version          "1.0.0"
 
 recipe            "tensorflow::install", "Download and compile and install tensorflow"
 recipe            "tensorflow::default",  "Setup tensorflow"
@@ -74,6 +74,10 @@ attribute "install/user",
           :description => "User to install the services as",
           :type => "string"
 
+#
+# Nvidia
+#
+
 attribute "nvidia/driver_version",
           :description => "NVIDIA driver version to use",
           :type => "string"
@@ -90,10 +94,34 @@ attribute "cuda/skip_stop_xserver",
           :description => "Dont restart the xserver (probably a localhost installation)",
           :type => "string"
 
+#
+# AMD - ROCM
+#
+attribute "rocm/install",
+          :description => "Set to 'true' to Install the AMD ROCm framework",
+          :type => "string"
+attribute "rocm/version",
+          :description => "Version of ROCm to install",
+          :type => "string"
+attribute "rocm/dist",
+          :description => "Distribution of ROCm to install",
+          :type => "string"
+attribute "miopen-hip/version",
+          :description => "Version of miopen-hip to install",
+          :type => "string"
+attribute "cxlactivitylogger/version",
+          :description => "Version of cxlactivitylogger to install",
+          :type => "string"
+
+#
+# Jupyter
+#
 attribute "jupyter/sparkmagic/version",
           :description => "Version of sparkmagic for Jupyter to install. ",
           :type => 'string'
-
+#
+# Feature Store
+#
 attribute "featurestore/examples_version",
           :description => "Version of feature store tour artifacts.",
           :type => 'string'
@@ -105,3 +133,30 @@ attribute "featurestore/hops_featurestore_demo_dir",
 attribute "featurestore/hops_featurestore_demo_url",
           :description => "URL to dowload featurestore tour artifacts",
           :type => 'string'
+
+#
+#
+# Python library versions
+#
+#
+attribute "tensorflow/version",
+          :description => "tensorflow and tensorflow-gpu version to install in python base environments",
+          :type => "string"
+
+attribute "tensorflow/rocm/version",
+          :description => "tensorflow-rocm version to install in python base environments",
+          :type => "string"
+
+attribute "torch/version",
+          :description => "PyTorch version to install in python base environments",
+          :type => "string"
+
+attribute "torchvision/version",
+          :description => "Torchvision version to install in python base environments",
+          :type => "string"
+
+attribute "matplotlib/python2/version",
+          :description => "Python 2 matplotlib version to install in python base environments",
+          :type => "string"
+
+
