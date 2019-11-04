@@ -8,12 +8,12 @@ action :driver do
 
   service "nodemanager" do
     action :stop
-    only_if "[[ ( -f /usr/lib/systemd/system/nodemanager.service || -f /lib/systemd/system/nodemanager.service ) && \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]]"
+    only_if "[ ( -f /usr/lib/systemd/system/nodemanager.service || -f /lib/systemd/system/nodemanager.service ) && \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]"
   end
 
   yarnapp_user = node['install']['user'].empty? ? "yarnapp" : node['install']['user']
-  if node.attribute?('hops') && node['hops'].attribute?('yarn') && node['hops']['yarn'].attribute?('linux_container_local_user')
-    yarnapp_user = node['hops']['yarn']['linux_container_local_user']
+  if node.attribute?('hops') && node['hops'].attribute?('yarnapp') && node['hops']['yarnapp'].attribute?('user')
+    yarnapp_user = node['hops']['yarnapp']['user']
   end
 
   bash "kill_apps" do
@@ -22,7 +22,7 @@ action :driver do
     code <<-EOF
       pkill -9 -u #{yarnapp_user}
     EOF
-    only_if "[[ getent passwd #{yarnapp_user} &&  \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" == \"#{new_resource.driver_version}\" ]]"
+    only_if "[ getent passwd #{yarnapp_user} &&  \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" == \"#{new_resource.driver_version}\" ]"
   end
 
   cached_file = "#{Chef::Config['file_cache_path']}/#{driver}"
@@ -31,7 +31,7 @@ action :driver do
     mode 0755
     action :create
     retries 1
-    only_if  "[[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]]"
+    only_if  "[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]"
   end
 
   case node['platform_family']
@@ -47,13 +47,13 @@ action :driver do
         set -e
         ./#{driver} -a --install-libglvnd --force-libglx-indirect -q --dkms --compat32-libdir -s --ui=none
       EOF
-      only_if  "[[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]]"
+      only_if  "[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]"
     end
 
   when "rhel"
 
     # Obs! Versioned header install doesn't work [Jim]
-    if node['rhel']['epel'] 
+    if node['rhel']['epel'].downcase == "true"
       package 'epel-release'
     end
 
@@ -79,7 +79,7 @@ action :driver do
         #
         ./#{driver} -a --install-libglvnd --force-libglx-indirect -q --dkms --compat32-libdir -s --ui=none
       EOF
-      only_if  "[[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]]"
+      only_if  "[ \"$(modinfo nvidia | grep \"^version:\" | awk '{split($0,a,\" \"); print a[2]}')\" != \"#{new_resource.driver_version}\" ]"
     end
   end
 end
@@ -87,6 +87,8 @@ end
 action :cuda do
   # new_resouce.version contains something like: 9.2.148_396.37~2
   # cuda_version_full will be 9.2.148_396.37
+
+  # install latest cuda version only
   cuda_version_full = new_resource.cuda_version.split('~')[0]
 
   # cuda_version_short: 9.2
@@ -125,7 +127,7 @@ action :cuda do
         set -e
         # Remove link from previous installations
         rm -f /usr/local/cuda
-        ./#{cuda_binary} --silent --toolkit --verbose --toolkitpath /usr/local/cuda-#{cuda_version_short}
+        ./#{cuda_binary} --silent --toolkit --verbose --toolkitpath=/usr/local/cuda-#{cuda_version_short}
       EOF
       not_if { cuda_version_installed }
     end
@@ -141,7 +143,7 @@ action :cuda do
       code <<-EOF
         set -e
         rm -f /usr/local/cuda
-        ./#{cuda_binary} --silent --toolkit --verbose  --no-opengl-libs --no-drm --toolkitpath /usr/local/cuda-#{cuda_version_short}
+        ./#{cuda_binary} --silent --toolkit --verbose  --no-opengl-libs --no-drm --toolkitpath=/usr/local/cuda-#{cuda_version_short}
       EOF
       not_if { cuda_version_installed }
     end
@@ -193,7 +195,7 @@ action :cudnn do
     not_if { cudnn_version_installed }
   end
 
-  bash "unpack_install_cdnn-#{base_cudnn_file}" do
+  bash "unpack_install_cudnn-#{base_cudnn_file}" do
     user "root"
     cwd Chef::Config['file_cache_path']
     timeout 14400

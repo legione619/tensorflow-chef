@@ -1,6 +1,7 @@
 group node["tensorflow"]["group"] do
   action :create
   not_if "getent group #{node["tensorflow"]["group"]}"
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 user node["tensorflow"]["user"] do
@@ -10,12 +11,14 @@ user node["tensorflow"]["user"] do
   action :create
   shell "/bin/bash"
   not_if "getent passwd #{node["tensorflow"]["user"]}"
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 group node["tensorflow"]["group"] do
   action :modify
   members ["#{node["tensorflow"]["user"]}"]
   append true
+  not_if { node['install']['external_users'].casecmp("true") == 0 }
 end
 
 directory node["tensorflow"]["dir"]  do
@@ -237,20 +240,28 @@ when "debian"
   package ["pkg-config", "zip", "g++", "zlib1g-dev", "unzip", "swig", "git", "build-essential", "cmake", "unzip", "libopenblas-dev", "liblapack-dev", "linux-image-#{node['kernel']['release']}", "linux-headers-#{node['kernel']['release']}", "python2.7", "python2.7-numpy", "python2.7-dev", "python-pip", "python2.7-lxml", "python-pillow", "libcupti-dev", "libcurl3-dev", "python-wheel", "python-six"]
 
 when "rhel"
-  if node['rhel']['epel']
+  if node['rhel']['epel'].downcase == "true"
     package 'epel-release'
   end
 
-  package ['python-pip', 'mlocate', 'gcc', 'gcc-c++', 'kernel-devel', 'openssl', 'openssl-devel', 'python', 'python-devel', 'python-lxml', 'python-pillow', 'libcurl-devel', 'python-wheel', 'python-six']
-end
+  # With our current CentOS box "CentOS Linux release 7.5.1804 (Core)",
+  # sudo yum install "kernel-devel-uname-r == $(uname -r)" doesn't work as it cannot find the kernel-devel version
+  # returned by uname-r.
+  # It works in AWS CentOS Linux release 7.6.1810 (Core) though.
+  # We can install the specific version and if that fails, then install the kernel devel package without
+  # specifying a version
+  package 'kernel-devel' do
+    version node['kernel']['release']
+    action :install
+    ignore_failure true
+  end
 
-bash "pip-upgrade" do
-  user "root"
-  umask "022"
-  code <<-EOF
-    set -e
-    pip install --upgrade pip
-  EOF
+  package 'kernel-devel' do
+    action :install
+    not_if  "ls -l /usr/src/kernels/$(uname -r)"
+  end
+
+  package ['pciutils', 'python-pip', 'mlocate', 'gcc', 'gcc-c++', 'openssl', 'openssl-devel', 'python', 'python-devel', 'python-lxml', 'python-pillow', 'libcurl-devel', 'python-wheel', 'python-six']
 end
 
 include_recipe "java"
@@ -278,7 +289,7 @@ if node['cuda']['accept_nvidia_download_terms'].eql?("true")
     not_if { node['cuda']['skip_test'] == "true" }
   end
 
-    bash "stop_xserver" do
+  bash "stop_xserver" do
     user "root"
     ignore_failure true
     code <<-EOF
@@ -291,27 +302,21 @@ if node['cuda']['accept_nvidia_download_terms'].eql?("true")
     action :driver
   end
 
-  node['cuda']['versions'].split(',').each do |version|
-    tensorflow_install "cuda_install" do
-      cuda_version version
-      action :cuda
-    end
+  tensorflow_install "cuda_install" do
+    cuda_version node['cuda']['versions'].split(',').last
+    action :cuda
   end
 
-  node['cudnn']['version_mapping'].split(',').each do |versionmap|
-    tensorflow_install "cudnn_install" do
-      cuda_version versionmap.split('+')[1]
-      cudnn_version versionmap.split('+')[0]
-      action :cudnn
-    end
+  tensorflow_install "cudnn_install" do
+    cuda_version node['cudnn']['version_mapping'].split(',').last.split('+')[1]
+    cudnn_version node['cudnn']['version_mapping'].split(',').last.split('+')[0]
+    action :cudnn
   end
 
-  node['nccl']['version_mapping'].split(',').each do |versionmap|
-    tensorflow_install "nccl" do
-      cuda_version versionmap.split('+')[1]
-      nccl_version versionmap.split('+')[0]
-      action :nccl
-    end
+  tensorflow_install "nccl" do
+    cuda_version node['nccl']['version_mapping'].split(',').last.split('+')[1]
+    nccl_version node['nccl']['version_mapping'].split(',').last.split('+')[0]
+    action :nccl
   end
 
   if node['tensorflow']['mpi'].eql? "true"
@@ -323,20 +328,22 @@ if node['cuda']['accept_nvidia_download_terms'].eql?("true")
     end
   end
 
-  # Cleanup old cuda/nccl installations which are no longer required
+  # Cleanup old cuda versions
   tensorflow_purge "remove_old_cuda" do
     cuda_versions node['cuda']['versions']
     action :cuda
   end
 
-  tensorflow_purge "remove_old_nccl" do
-    nccl_versions node['nccl']['version_mapping']
-    :nccl
-  end
-
+  # Cleanup old cudnn versions
   tensorflow_purge "remove_old_cudnn" do
     cudnn_versions node['cudnn']['version_mapping']
     :cudnn
+  end
+
+# Cleanup old nccl versions
+  tensorflow_purge "remove_old_nccl" do
+    nccl_versions node['nccl']['version_mapping']
+    :nccl
   end
 
   # Test installation
@@ -415,4 +422,68 @@ remote_file "#{Chef::Config['file_cache_path']}/sparkmagic-#{node['jupyter']['sp
   source node['jupyter']['sparkmagic']['url']
   mode 0755
   action :create_if_missing
+end
+
+
+#
+# ROCm
+#
+
+if node['rocm']['install'].eql? "true"
+
+  case node['platform_family']
+  when "debian"
+      install_dir = node['rocm']['dir'] + "/rocm-" + node['rocm']['debian']['version']
+      directory node["rocm"]["dir"]  do
+        owner "_apt"
+        group "root"
+        mode "755"
+        action :create
+        not_if { File.directory?("#{node["rocm"]["dir"]}") }
+      end
+
+      directory install_dir do
+        owner "_apt"
+        group "root"
+        mode "750"
+        action :create
+      end
+
+      link node["rocm"]["base_dir"] do
+        owner "_apt"
+        group "root"
+        to install_dir
+      end
+  when "rhel"
+      install_dir = node['rocm']['dir'] + "/rocm-" + node['rocm']['rhel']['version']
+      directory node["rocm"]["dir"]  do
+        owner "root"
+        group "root"
+        mode "755"
+        action :create
+        not_if { File.directory?("#{node["rocm"]["dir"]}") }
+      end
+
+      directory install_dir do
+        owner "root"
+        group "root"
+        mode "750"
+        action :create
+      end
+
+      link node["rocm"]["base_dir"] do
+        owner "root"
+        group "root"
+        to install_dir
+      end
+  end
+
+  tensorflow_purge "remove_old_rocm" do
+    action :rocm
+  end
+
+  tensorflow_amd "install_rocm" do
+    action :install_rocm
+    rocm_home install_dir
+  end
 end
