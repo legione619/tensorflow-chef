@@ -6,12 +6,12 @@ source 'https://supermarket.chef.io'
 
 metadata
 
-cookbook 'kagent', github: 'giabbo79/kagent-chef', branch: 'master'
+cookbook 'kagent', github: 'giabbo79/kagent-chef', branch: '0.9'
 cookbook 'java'
 cookbook 'magic_shell'
 cookbook 'build-essential'
 cookbook 'zip'
 cookbook 'apt'
 cookbook 'homebrew'
-cookbook 'ndb', github: "giabbo79/ndb-chef", branch: "master"
-cookbook 'hops', github: "giabbo79/hops-hadoop-chef", branch: "master"
+cookbook 'ndb', github: "giabbo79/ndb-chef", branch: "0.9"
+cookbook 'hops', github: "giabbo79/hops-hadoop-chef", branch: "0.9"
