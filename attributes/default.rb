@@ -12,10 +12,11 @@ default['tensorflow']['rocm']['version']         = "1.14.0"
 
 default["tensorflow"]['serving']["version"]      = "1.14.0"
 default["cudatoolkit"]["version"]                = "10.0"
-default["pytorch"]["version"]                    = "1.0.1"
-default["pytorch"]["python2"]["build"]           = "py2.7_cuda10.0.130_cudnn7.4.2_2"
-default["pytorch"]["python3"]["build"]           = "py3.6_cuda10.0.130_cudnn7.4.2_2"
-default["torchvision"]["version"]                = "0.2.1"
+default["pytorch"]["version"]                    = "1.4.0"
+default["pytorch"]["python2"]["build"]           = "py2.7_cuda10.0.130_cudnn7.6.3_0"
+#pytorch-1.3.1-py3.6_cpu_0
+default["pytorch"]["python3"]["build"]           = "py3.6_cuda10.0.130_cudnn7.6.3_0"
+default["torchvision"]["version"]                = "0.5.0"
 default["matplotlib"]['python2']["version"]      = "2.2.3"
 default["numpy"]["version"]                      = "1.16.5"
 
@@ -24,6 +25,9 @@ default['pyspark']['version']                    = "2.4.3"
 default['tfx']['version']                        = "0.14.0"
 
 default['tensorflow']['install']       = "dist" # or 'src' or 'custom'
+#Avro dependencies
+default["pycodestyle"]["version"]                = "2.5.0"
+default["avro-python3"]["version"]               = "1.9.2"
 
 # tensorflow-1.2.1-debian-gcc_version-python_version.whl
 # #{node['download_url']}/tensorflow-#{node['tensorflow']['version']}-#{node['platform']}-5.4-2.7.whl"
@@ -122,7 +126,7 @@ default['bazel']['url']                = "#{node['download_url']}/bazel-#{node['
 default['openmpi']['version']          = "openmpi-3.1.0.tar.gz"
 
 
-default['jupyter']['sparkmagic']['version']            = "0.12.7"
+default['jupyter']['sparkmagic']['version']            = "0.12.8"
 default['jupyter']['sparkmagic']['url']                = node['download_url'] + "/sparkmagic-" + node['jupyter']['sparkmagic']['version'] + ".tar.gz"
 
 # Pinned Python libary versions to install in the base environments
@@ -140,4 +144,4 @@ default['featurestore']['hops_featurestore_demo_url'] = "#{node['download_url']}
 
 # Maggy - dist optimization for TensorFlow/Spark
 #
-default['maggy']['version']                           = "0.3.0"
+default['maggy']['version']                           = "0.4.*"
