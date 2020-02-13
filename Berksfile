@@ -1,4 +1,4 @@
-# Start Bugfix: https://github.com/berkshelf/berkshelf-api/issues/112
+# Start Bugfix: https://github.com/berkshelf/berkshelf-api/issues/master
 Encoding.default_external = "UTF-8"
 # End Bugfix
 

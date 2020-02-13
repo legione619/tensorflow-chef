@@ -247,8 +247,6 @@ for python in python_versions
 
     ${CONDA_DIR}/bin/conda create -n $ENV python=#{python} -y -q
 
-    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade pip
-
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade requests
 
     if [ "#{python}" == "2.7" ] ; then
@@ -262,7 +260,8 @@ for python in python_versions
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade ipykernel hops-ipython-sql
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade matplotlib
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install nvidia-ml-py3==#{node['conda']['nvidia-ml-py']['version']}
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install avro-python3
+        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install pycodestyle==#{node['pycodestyle']['version']}
+	      yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install avro-python3==#{node['avro-python3']['version']}
     fi
 
     # Install hops-apache-beam and tfx
@@ -297,21 +296,9 @@ for python in python_versions
       yes | #{node['conda']['base_dir']}/envs/${ENV}/bin/pip install --upgrade #{node['tensorflow']['custom_url']}/tensorflow${TENSORFLOW_LIBRARY_SUFFIX}-#{node['tensorflow']['version']}-cp${PY}-cp${PY}mu-manylinux1_x86_64.whl --force-reinstall
     else
       if [ $TENSORFLOW_LIBRARY_SUFFIX == "-rocm" ] ; then
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install tensorflow-serving-api==#{node['tensorflow']['serving']["version"]}
-
-        # Uninstall tensorflow pulled in by tensorflow-serving-api to prepare for the actual TF installation
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip uninstall tensorflow
-
-        # Uninstall tensorflow-estimator pulled in by tensorflow-serving-api to prepare for the actual TF installation
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip uninstall tensorflow-estimator
-
-        # Uninstall tensorboard pulled in by tensorflow-serving-api to prepare for the actual TF installation
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip uninstall tensorboard
-
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install tensorflow${TENSORFLOW_LIBRARY_SUFFIX}==#{node['tensorflow']['rocm']['version']}
       else
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install tensorflow${TENSORFLOW_LIBRARY_SUFFIX}==#{node['tensorflow']["version"]} --upgrade --force-reinstall
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install tensorflow-serving-api${TENSORFLOW_LIBRARY_SUFFIX}==#{node['tensorflow']['serving']["version"]} --upgrade --force-reinstall
       fi
     fi
 
@@ -344,17 +331,13 @@ for python in python_versions
 
     if [ $TENSORFLOW_LIBRARY_SUFFIX == "-gpu" ] ; then
       if [ "#{python}" == "2.7" ] ; then
-        ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch=#{node['pytorch']['version']}=#{node["pytorch"]["python2"]["build"]} torchvision=#{node['torchvision']['version']} cudatoolkit=#{node['cudatoolkit']['version']}
+        ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch=#{node['pytorch']['version']}=#{node["pytorch"]["python2"]["build"]} torchvision=#{node['torchvision']['version']} 
       else
-        ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch=#{node['pytorch']['version']}=#{node["pytorch"]["python3"]["build"]} torchvision=#{node['torchvision']['version']} cudatoolkit=#{node['cudatoolkit']['version']}
+        ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch=#{node['pytorch']['version']}=#{node["pytorch"]["python3"]["build"]} torchvision=#{node['torchvision']['version']} 
       fi
-      ${CONDA_DIR}/bin/conda remove -y -n ${ENV} cudatoolkit=#{node['cudatoolkit']['version']} --force
     else
-      ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch-cpu=#{node['pytorch']['version']} torchvision-cpu=#{node['torchvision']['version']}
+        ${CONDA_DIR}/bin/conda install -y -n ${ENV} -c ${PYTORCH_CHANNEL} pytorch==#{node['pytorch']['version']} torchvision==#{node['torchvision']['version']} cpuonly
     fi
-
-    # This is a temporary fix for pytorch 1.0.1 https://github.com/pytorch/pytorch/issues/16775
-    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install typing
 
     # for sklearn serving
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade Flask
