@@ -57,7 +57,7 @@ action :driver do
       package 'epel-release'
     end
 
-    package ['kernel-devel', 'kernel-headers', 'libglvnd-glx', 'dkms', 'rpm-build', 'redhat-rpm-config', 'asciidoc', 'hmaccalc', 'perl-ExtUtils-Embed', 'pesign', 'xmlto', 'bison', 'bc', 'audit-libs-devel', 'binutils-devel', 'elfutils-devel', 'elfutils-libelf-devel', 'ncurses-devel', 'newt-devel', 'numactl-devel', 'pciutils-devel', 'python-devel', 'zlib-devel']
+    package ['kernel-headers', 'libglvnd-glx', 'dkms', 'rpm-build', 'redhat-rpm-config', 'asciidoc', 'hmaccalc', 'perl-ExtUtils-Embed', 'pesign', 'xmlto', 'bison', 'bc', 'audit-libs-devel', 'binutils-devel', 'elfutils-devel', 'elfutils-libelf-devel', 'ncurses-devel', 'newt-devel', 'numactl-devel', 'pciutils-devel', 'python-devel', 'zlib-devel']
 
     bash "install_driver_centos" do
       user "root"
@@ -224,6 +224,11 @@ action :nccl do
   cached_nccl_file = "#{Chef::Config['file_cache_path']}/#{nccl_file_name_ext}"
   url_nccl_file = "#{node['nccl']['base_url']}/#{nccl_file_name_ext}"
 
+  # if the file is being downloaded from a s3 bucket, we need to change the '+' in the URL to '%2B'
+  if url_nccl_file.include? ".s3-"
+    url_nccl_file["+"]="%2B"
+  end
+  
   remote_file cached_nccl_file do
     source url_nccl_file
     mode 755

@@ -1,47 +1,3 @@
-group node["tensorflow"]["group"] do
-  action :create
-  not_if "getent group #{node["tensorflow"]["group"]}"
-  not_if { node['install']['external_users'].casecmp("true") == 0 }
-end
-
-user node["tensorflow"]["user"] do
-  gid node["tensorflow"]["group"]
-  manage_home true
-  home "/home/#{node["tensorflow"]["user"]}"
-  action :create
-  shell "/bin/bash"
-  not_if "getent passwd #{node["tensorflow"]["user"]}"
-  not_if { node['install']['external_users'].casecmp("true") == 0 }
-end
-
-group node["tensorflow"]["group"] do
-  action :modify
-  members ["#{node["tensorflow"]["user"]}"]
-  append true
-  not_if { node['install']['external_users'].casecmp("true") == 0 }
-end
-
-directory node["tensorflow"]["dir"]  do
-  owner node["tensorflow"]["user"]
-  group node["tensorflow"]["group"]
-  mode "755"
-  action :create
-  not_if { File.directory?("#{node["tensorflow"]["dir"]}") }
-end
-
-directory node["tensorflow"]["home"] do
-  owner node["tensorflow"]["user"]
-  group node["tensorflow"]["group"]
-  mode "750"
-  action :create
-end
-
-link node["tensorflow"]["base_dir"] do
-  owner node["tensorflow"]["user"]
-  group node["tensorflow"]["group"]
-  to node["tensorflow"]["home"]
-end
-
 # First, find out the compute capability of your GPU here: https://developer.nvidia.com/cuda-gpus
 # E.g.,
 # NVIDIA TITAN X	6.1
@@ -52,30 +8,6 @@ end
 if node['cuda']['accept_nvidia_download_terms'].eql? "true"
   node.override['tensorflow']['need_cuda'] = 1
 end
-#
-# If either 'infinband' or 'mpi' are selected, we have to build tensorflow from source.
-#
-if node['tensorflow']['mpi'].eql? "true"
-  node.override['tensorflow']['need_mpi'] = 1
-
-  case node['platform_family']
-  when "debian"
-    package "openmpi-bin"
-    package "libopenmpi-dev"
-    package "mpi-default-bin"
-
-  when "rhel"
-    # installs binaries to /usr/local/bin
-    # horovod needs mpicxx in /usr/local/bin/mpicxx - add it to the PATH
-    package "openmpi-devel"
-    package "libtool"
-
-    magic_shell_environment 'PATH' do
-      value "$PATH:#{node['cuda']['base_dir']}/bin:/usr/local/bin"
-    end
-  end
-end
-
 
 if node['tensorflow']['mkl'].eql? "true"
   node.override['tensorflow']['need_mkl'] = 1
@@ -117,7 +49,6 @@ if node['tensorflow']['mkl'].eql? "true"
     EOF
     end
   end
-
 end
 
 if node['tensorflow']['rdma'].eql? "true"
@@ -249,9 +180,11 @@ when "rhel"
   # returned by uname-r.
   # It works in AWS CentOS Linux release 7.6.1810 (Core) though.
   # We can install the specific version and if that fails, then install the kernel devel package without
-  # specifying a version
+  # specifying a version. In our current Centos box bento/centos-7.5 this fails as the kernel-devel package is not
+  # available
   package 'kernel-devel' do
-    version node['kernel']['release']
+    version node['kernel']['release'].sub(/\.#{node['kernel']['machine']}/, "")
+    arch node['kernel']['machine']
     action :install
     ignore_failure true
   end
@@ -319,15 +252,6 @@ if node['cuda']['accept_nvidia_download_terms'].eql?("true")
     action :nccl
   end
 
-  if node['tensorflow']['mpi'].eql? "true"
-    case node['platform_family']
-    when "rhel"
-      tensorflow_compile "mpi-compile" do
-        action :openmpi
-      end
-    end
-  end
-
   # Cleanup old cuda versions
   tensorflow_purge "remove_old_cuda" do
     cuda_versions node['cuda']['versions']
@@ -355,66 +279,6 @@ if node['cuda']['accept_nvidia_download_terms'].eql?("true")
   end
 end
 
-
-if node['tensorflow']['install'].eql?("src")
-
-  # https://wiki.fysik.dtu.dk/niflheim/OmniPath#openmpi-configuration
-  # compile openmpi on centos 7
-  # https://bitsanddragons.wordpress.com/2017/05/08/install-openmpi-2-1-0-on-centos-7/
-  bzl =  File.basename(node['bazel']['url'])
-  case node['platform_family']
-  when "debian"
-
-    bash "bazel-install-ubuntu" do
-      user "root"
-      code <<-EOF
-      set -e
-       apt-get install pkg-config zip g++ zlib1g-dev unzip -y
-    EOF
-    end
-
-  when "rhel"
-
-    # https://gist.github.com/jarutis/6c2934705298720ff92a1c10f6a009d4
-    bash "bazel-install-centos" do
-      user "root"
-      umask "022"
-      code <<-EOF
-      set -e
-      yum install patch -y
-      yum -y install gcc gcc-c++ kernel-devel make automake autoconf swig git unzip libtool binutils
-      yum -y install python-devel python-pip
-      yum -y install freetype-devel libpng12-devel zip zlib-devel giflib-devel zeromq3-devel
-      pip install --target /usr/lib/python2.7/site-packages numpy
-      pip install grpcio_tools mock
-    EOF
-    end
-  end
-
-  bash "bazel-install" do
-    user "root"
-    code <<-EOF
-      set -e
-       cd #{Chef::Config['file_cache_path']}
-       rm -f #{bzl}
-       wget #{node['bazel']['url']}
-       chmod +x bazel-*
-#       ./#{bzl} --user
-       ./#{bzl}
-       /usr/local/bin/bazel
-    EOF
-    not_if { File::exists?("/usr/local/bin/bazel") }
-  end
-
-  tensorflow_compile "mpi-compile" do
-    action :openmpi
-  end
-
-  tensorflow_compile "tensorflow" do
-    action :tf
-  end
-end
-
 # Delete SparkMagic
 file "#{Chef::Config['file_cache_path']}/sparkmagic-#{node['jupyter']['sparkmagic']['version']}.tar.gz" do
   action :delete
@@ -429,7 +293,6 @@ remote_file "#{Chef::Config['file_cache_path']}/sparkmagic-#{node['jupyter']['sp
   mode 0755
   action :create
 end
-
 
 #
 # ROCm
