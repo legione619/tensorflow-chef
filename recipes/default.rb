@@ -322,7 +322,7 @@ for python in python_versions
     if [ $HOPS_UTIL_PY_INSTALL_MODE == "git" ] ; then
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install git+https://github.com/${HOPS_UTIL_PY_REPO}/hops-util-py@$HOPS_UTIL_PY_BRANCH
     else
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --no-deps hops==$HOPS_UTIL_PY_VERSION
+        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install hops==$HOPS_UTIL_PY_VERSION
     fi
 
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade pyjks
@@ -331,7 +331,7 @@ for python in python_versions
 
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade hops-petastorm
 
-    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install opencv-python==4.2.0.32
+    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade opencv-python
 
     export PYTORCH_CHANNEL=#{node['conda']['channels']['pytorch']}
     if [ "${PYTORCH_CHANNEL}" == "" ] ; then
