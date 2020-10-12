@@ -3,11 +3,10 @@ maintainer       "Jim Dowling"
 maintainer_email "jdowling@kth.se"
 license          "Apache v2.0"
 description      'Installs/Configures/Runs tensorflow'
-version          "1.3.0"
+version          "1.4.0"
 
 recipe            "tensorflow::install", "Install NVIDIA or AMD drivers"
-recipe            "tensorflow::default",  "Create Anaconda base environments"
-recipe            "tensorflow::serving",  "Install TensorFlow Model Serving server"
+recipe            "tensorflow::default",  "Upload Hopsworks tour examples"
 
 
 depends "java", '~> 7.0.0'
@@ -27,18 +26,6 @@ end
 
 attribute "download_url",
           :description => "url for binaries",
-          :type => "string"
-
-attribute "tensorflow/mkl",
-          :description => "'true' to install Intel MKL support, 'false' (default) for no support. ",
-          :type => "string"
-
-attribute "tensorflow/rdma",
-          :description => "Used by TensorflowOnSpark. 'true' to install rdma (infiniband) support, 'false' (default) for no rdma support. ",
-          :type => "string"
-
-attribute "tensorflow/custom_url",
-          :description => "User-supplied URL for the tensorflow .whl binaries to be installed.",
           :type => "string"
 
 attribute "install/dir",
@@ -89,13 +76,6 @@ attribute "cxlactivitylogger/version",
           :type => "string"
 
 #
-# Jupyter
-#
-attribute "jupyter/sparkmagic/version",
-          :description => "Version of sparkmagic for Jupyter to install. ",
-          :type => 'string'
-
-#
 # Feature Store examples
 #
 attribute "featurestore/examples_version",
@@ -132,20 +112,4 @@ attribute "tensorflow/hopstfdemo_url",
 #
 attribute "tensorflow/version",
           :description => "tensorflow and tensorflow-gpu version to install in python base environments",
-          :type => "string"
-
-attribute "tensorflow/rocm/version",
-          :description => "tensorflow-rocm version to install in python base environments",
-          :type => "string"
-
-attribute "torch/version",
-          :description => "PyTorch version to install in python base environments",
-          :type => "string"
-
-attribute "torchvision/version",
-          :description => "Torchvision version to install in python base environments",
-          :type => "string"
-
-attribute "maggy/version",
-          :description => "Maggy version to install",
           :type => "string"
