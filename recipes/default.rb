@@ -176,6 +176,7 @@ bash 'extract_sparkmagic' do
     rm -rf #{node['conda']['dir']}/sparkmagic
     tar zxf sparkmagic-#{node['jupyter']['sparkmagic']['version']}.tar.gz
     mv sparkmagic #{node['conda']['dir']}
+    chown -R #{node['conda']['user']}:#{node['conda']['group']} #{node['conda']['dir']}/sparkmagic
   EOF
 end
 
