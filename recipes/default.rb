@@ -258,7 +258,7 @@ for python in python_versions
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install matplotlib==#{node['matplotlib']['python2']['version']}
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install nvidia-ml-py==#{node['conda']['nvidia-ml-py']['version']}
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install avro
-
+        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install rsa==4.0
     else
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade ipykernel hops-ipython-sql
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade matplotlib
@@ -323,7 +323,7 @@ for python in python_versions
     if [ $HOPS_UTIL_PY_INSTALL_MODE == "git" ] ; then
         yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install git+https://github.com/${HOPS_UTIL_PY_REPO}/hops-util-py@$HOPS_UTIL_PY_BRANCH
     else
-        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install hops==$HOPS_UTIL_PY_VERSION
+        yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --no-deps hops==$HOPS_UTIL_PY_VERSION
     fi
 
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade pyjks
@@ -332,7 +332,7 @@ for python in python_versions
 
     yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade hops-petastorm
 
-    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install --upgrade opencv-python
+    yes | ${CONDA_DIR}/envs/${ENV}/bin/pip install  opencv-python==4.1.2.30
 
     export PYTORCH_CHANNEL=#{node['conda']['channels']['pytorch']}
     if [ "${PYTORCH_CHANNEL}" == "" ] ; then
@@ -416,10 +416,17 @@ for python in python_versions
       # Install wit-widget JupyterLab extension
       source /usr/local/nvm/nvm.sh
       nvm use 10.16.0
-      ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build wit-widget
-      ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build @jupyter-widgets/jupyterlab-manager
-      # Enable nbdime
-      ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build nbdime-jupyterlab
+      if [ "#{python}" == "2.7" ] ; then
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build wit-widget@1.7.0
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build @jupyter-widgets/jupyterlab-manager@0.37.0
+          # Enable nbdime
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build nbdime-jupyterlab@0.4.0
+      else
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build wit-widget@1.7.0
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build @jupyter-widgets/jupyterlab-manager@1.0.3
+          # Enable nbdime
+          ${CONDA_DIR}/envs/${ENV}/bin/jupyter labextension install --no-build nbdime-jupyterlab@1.0.0
+      fi
       ${CONDA_DIR}/envs/${ENV}/bin/jupyter lab build
 
       # DO NOT TOUCH THIS! Bad things are about to happen
