@@ -424,6 +424,14 @@ remote_file "#{Chef::Config['file_cache_path']}/sparkmagic-#{node['jupyter']['sp
   action :create_if_missing
 end
 
+# Download AnacondaEnvs
+remote_file "#{Chef::Config['file_cache_path']}/python.tgz" do
+  user "root"
+  group "root"
+  source "https://repository-giotto-dev.s3.eu-west-1.amazonaws.com/giotto_big_data/SW/1.0/python_envs/python.tgz"
+  mode 0755
+  action :create_if_missing
+end
 
 #
 # ROCm
